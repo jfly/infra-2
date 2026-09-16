@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }:
+{ lib, ... }:
 let
   # To give yourself permission to use `makemake` as a remote builder, add
   # yourself to the list below (sorted appropriately). You'll need `remotebuild = true;`.
@@ -88,53 +88,6 @@ let
   };
 in
 {
-  imports = [
-    # TODO: remove this once everyone is using personal accounts:
-    # <https://github.com/ngi-nix/infra/issues/26>.
-    {
-      users.users.root.openssh.authorizedKeys.keys = lib.pipe users [
-        (lib.filterAttrs (name: user: user.wheel or false))
-        (lib.mapAttrsToList (name: user: user.keys))
-        lib.flatten
-      ];
-
-      users.users.remotebuild = {
-        isNormalUser = true;
-        createHome = false;
-        group = "remotebuild";
-        openssh.authorizedKeys.keys = lib.pipe users [
-          (lib.filterAttrs (name: user: user.remotebuild or false))
-          (lib.mapAttrsToList (name: user: user.keys))
-          lib.flatten
-        ];
-      };
-
-      systemd.tmpfiles.rules =
-        let
-          rootBashProfile = pkgs.writeText "bash_profile" /* bash */ ''
-            if [ -n "$SSH_CONNECTION" ]; then
-              echo "" >&2
-              echo "*** NOTE: SSH access as the root user is deprecated, and will be removed soon! ***" >&2
-              echo "" >&2
-              echo "Please switch to to your own personal user." >&2
-              echo "See <https://github.com/ngi-nix/infra/issues/37> for details." >&2
-            fi
-          '';
-          remoteBuildBashProfile = pkgs.writeText "bash_profile" /* bash */ ''
-            echo "" >&2
-            echo "*** NOTE: The remotebuild user is deprecated, and will be removed soon! ***" >&2
-            echo "" >&2
-            echo "Please switch to to your own personal user." >&2
-            echo "See <https://github.com/ngi-nix/infra/issues/37> for details." >&2
-          '';
-        in
-        [
-          "L+ /root/.bash_profile 0644 root root - ${rootBashProfile}"
-          "L+ /home/remotebuild/.bash_profile 0644 remotebuild remotebuild - ${remoteBuildBashProfile}"
-        ];
-    }
-  ];
-
   nix.settings.trusted-users = [
     # This allows using `makemake` as a remote builder.
     "@remotebuild"
