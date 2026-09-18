@@ -1,6 +1,16 @@
-{ self, inputs, ... }:
 {
-  # TODO: move `makemake` into a nixosConfigurations subfolder and iterate over that.
-  flake.nixosConfigurations.makemake = import ../makemake/default.nix { inherit inputs; };
-  perSystem.checks."nixos/makemake" = self.nixosConfigurations.makemake.config.system.build.toplevel;
+  self,
+  lib,
+  inputs,
+  ...
+}:
+{
+  config = lib.mkMerge (
+    lib.mapAttrsToList (name: type: {
+      flake.nixosConfigurations.${name} = import ../nixosConfigurations/${name} {
+        inherit inputs;
+      };
+      perSystem.checks."nixos/${name}" = self.nixosConfigurations.${name}.config.system.build.toplevel;
+    }) (builtins.readDir ../nixosConfigurations)
+  );
 }
