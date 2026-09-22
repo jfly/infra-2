@@ -59,7 +59,7 @@ in
           name = sopsPrefix key;
           value = {
             inherit key;
-            sopsFile = ./secrets/buildbot.json;
+            sopsFile = ../../secrets/buildbot.json;
           };
         })
         [
@@ -71,11 +71,11 @@ in
     ))
     // {
       ${sopsPrefix "workers"} = {
-        sopsFile = ./secrets/buildbot-workers.json;
+        sopsFile = ../../secrets/buildbot-workers.json;
         format = "binary";
       };
       ${sopsPrefix "buildbot.pem"} = {
-        sopsFile = ./secrets/buildbot.pem;
+        sopsFile = ../../secrets/buildbot.pem;
         format = "binary";
       };
     };
