@@ -19,38 +19,40 @@ in
       description = lib.mkForce "Custom offen service configuration.";
       services.components.offen.process = {
         command = lib.mkForce (
-          pkgs.writeShellApplication {
-            name = "offen-with-sendmail";
-            runtimeInputs = [
-              self'.packages.pkgs.offen
+          lib.getExe (
+            pkgs.writeShellApplication {
+              name = "offen-with-sendmail";
+              runtimeInputs = [
+                self'.packages.pkgs.offen
 
-              # Offen uses `which sendmail` to find a sendmail executable:
-              # <https://github.com/offen/offen/blob/v1.4.2/server/mailer/sendmailmailer/mailer.go#L47>.
-              pkgs.which
-              # Quick and dirty hack to be able to see emails before we set up SMTP.
-              # Doing this right is tracked by <https://github.com/ngi-nix/infra/issues/81>.
-              (pkgs.writeShellApplication {
-                name = "sendmail";
-                runtimeInputs = [
-                  pkgs.util-linux # Provides `logger`.
-                ];
-                text = ''
-                  logger --tag fake-sendmail "invoked with $*"
-                  cat /dev/stdin | logger --tag fake-sendmail
+                # Offen uses `which sendmail` to find a sendmail executable:
+                # <https://github.com/offen/offen/blob/v1.4.2/server/mailer/sendmailmailer/mailer.go#L47>.
+                pkgs.which
+                # Quick and dirty hack to be able to see emails before we set up SMTP.
+                # Doing this right is tracked by <https://github.com/ngi-nix/infra/issues/81>.
+                (pkgs.writeShellApplication {
+                  name = "sendmail";
+                  runtimeInputs = [
+                    pkgs.util-linux # Provides `logger`.
+                  ];
+                  text = ''
+                    logger --tag fake-sendmail "invoked with $*"
+                    cat /dev/stdin | logger --tag fake-sendmail
 
-                  {
-                    echo "SMTP is not yet configured."
-                    echo "For now, ssh to makemake and run 'sudo journalctl -u offen.service -t fake-sendmail -f' to view emails."
-                    echo ""
-                    echo "Setting up SMTP is tracked by <https://github.com/ngi-nix/infra/issues/81>."
-                  } >/dev/stderr
-                '';
-              })
-            ];
-            text = ''
-              exec offen "$@"
-            '';
-          }
+                    {
+                      echo "SMTP is not yet configured."
+                      echo "For now, ssh to makemake and run 'sudo journalctl -u offen.service -t fake-sendmail -f' to view emails."
+                      echo ""
+                      echo "Setting up SMTP is tracked by <https://github.com/ngi-nix/infra/issues/81>."
+                    } >/dev/stderr
+                  '';
+                })
+              ];
+              text = ''
+                exec offen "$@"
+              '';
+            }
+          )
         );
 
         # https://docs.offen.dev/running-offen/configuring-the-application/
@@ -94,11 +96,17 @@ in
       systemd.services.offen.serviceConfig = {
         LoadCredential = "offen_secret:${config.sops.secrets.offen-secret.path}";
         ExecStart = lib.mkForce (
-          pkgs.writeScript "offen-with-secrets" ''
-            export OFFEN_SECRET=$(< $CREDENTIALS_DIRECTORY/offen_secret)
+          lib.getExe (
+            pkgs.writeShellApplication {
+              name = "offen-with-secrets";
+              text = ''
+                OFFEN_SECRET=$(< "$CREDENTIALS_DIRECTORY"/offen_secret)
+                export OFFEN_SECRET
 
-            exec ${flakeConfig'.forge.apps.offen.services.components.offen.process.command} "$@"
-          ''
+                exec ${flakeConfig'.forge.apps.offen.services.components.offen.process.command} "$@"
+              '';
+            }
+          )
         );
       };
 
