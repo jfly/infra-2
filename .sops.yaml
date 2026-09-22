@@ -9,7 +9,7 @@
     - &makemake         age1ewus3xraznqv6xc2ptua2qjqrjyhfd8uugu08wjduushj3uhgqwsqd6vkk
 
 creation_rules:
-  - path_regex: makemake/secrets
+  - path_regex: nixosConfigurations/makemake/secrets
     key_groups:
       - age:
         - *eljamm

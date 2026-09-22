@@ -9,6 +9,7 @@
     lib.mapAttrsToList (name: type: {
       flake.nixosConfigurations.${name} = import ../nixosConfigurations/${name} {
         inherit inputs;
+        inherit self;
       };
       perSystem.checks."nixos/${name}" = self.nixosConfigurations.${name}.config.system.build.toplevel;
     }) (builtins.readDir ../nixosConfigurations)
